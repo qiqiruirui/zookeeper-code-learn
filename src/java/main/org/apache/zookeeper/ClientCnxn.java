@@ -1579,6 +1579,7 @@ public class ClientCnxn {
         return state;
     }
 
+    //本地回调类
     private static class LocalCallback {
         private final AsyncCallback cb;
         private final int rc;

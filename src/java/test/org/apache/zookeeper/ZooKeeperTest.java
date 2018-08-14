@@ -44,6 +44,13 @@ public class ZooKeeperTest extends ClientBase {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
 
+    /**
+     * 测试ZooKeeper和ZooKeeperMain
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws CliException
+     * @throws KeeperException
+     */
     @Test
     public void testDeleteRecursive() throws IOException, InterruptedException, CliException, KeeperException {
         final ZooKeeper zk = createClient();
@@ -79,6 +86,8 @@ public class ZooKeeperTest extends ClientBase {
         // compatibility.
         String cmdstring0 = "rmr /a/b/v";
         String cmdstring1 = "deleteall /a";
+
+        //通过命令行的方式删除path
         zkMain.cl.parseCommand(cmdstring0);
         Assert.assertFalse(zkMain.processZKCmd(zkMain.cl));
         Assert.assertEquals(null, zk.exists("/a/b/v", null));

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * zookeeper对thread类的封装，主要处理zookeeper异常
  * This is the main class for catching all the uncaught exceptions thrown by the
  * threads.
  */

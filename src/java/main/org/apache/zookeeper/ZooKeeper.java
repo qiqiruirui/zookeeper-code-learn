@@ -86,6 +86,16 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * 1.主要的zookeeper客户端的主类。使用zookeeper service，应用必须先实例化一个zookeeper类对象。
+ * 通过调用zookeeper类的方法，所有的迭代将会执行完成。
+ * 2.一旦到服务端的连接建立，session id将会分配给客户端。客户端通过向服务端周期性的发送心跳保持session
+ * 可用。
+ * 3.只要客户端的session id可用，应用就可以通过client调用zookeeper服务端的api；
+ * 4.如果由于一些原因，客户端向服务端发送的心跳超时，那么服务端认为session过期，
+ * 这个session ID 将不可用。调用zookeeper的api必须要新建client 对象。
+ * 5.如果client连接的zookeeper服务端故障或者没有响应，在session ID超时前，client会自动的连接到其他的服务端。
+ * 如果连接成功，应用可以继续使用这个client；
+ * 6.
  * This is the main class of ZooKeeper client library. To use a ZooKeeper
  * service, an application must first instantiate an object of ZooKeeper class.
  * All the iterations will be done by calling the methods of ZooKeeper class.
@@ -109,12 +119,18 @@ import java.util.Set;
  * server before its session ID expires. If successful, the application can
  * continue to use the client.
  * <p>
+ *  zookeeper的api方法既有synchronize也有asynchronous的。同步方法阻塞直到服务器响应。
+ *  异步方法仅仅将发送的请求放到queue立即返回。异步情况会返回一个回调对象，它将在请求
+ *  成功执行或在带标识失败码的失败情况执行。
  * The ZooKeeper API methods are either synchronous or asynchronous. Synchronous
  * methods blocks until the server has responded. Asynchronous methods just queue
  * the request for sending and return immediately. They take a callback object that
  * will be executed either on successful execution of the request or on error with
  * an appropriate return code (rc) indicating the error.
  * <p>
+ *  一些成功的zookeeper api调用可以在zookeeper服务器的data node上设置watch。其他的成功的zookeeper aip
+ *  调用可以出发这些watchs。一旦watch触发后，一个时间将会发送到设置watch的client。每个watch只能被触发一次。
+ *  所以，最多只有一个事件会被发送到设置watch的client。
  * Some successful ZooKeeper API calls can leave watches on the "data nodes" in
  * the ZooKeeper server. Other successful ZooKeeper API calls can trigger those
  * watches. Once a watch is triggered, an event will be delivered to the client
@@ -122,6 +138,12 @@ import java.util.Set;
  * once. Thus, up to one event will be delivered to a client for every watch it
  * leaves.
  * <p>
+ *  client需要一个实现watcher接口的类来处理发送到client的事件。
+ *  当一个client丢失当前的连接，并重连到一个服务器。此时所有存在的watches
+ *  恰好将被触发，没有发送的event将会丢失。
+ *  client可以产生一个特殊的event来告诉event handler连接丢失。这个特殊event的
+ *  EventType是None, KeeperState Disconnected.
+ *
  * A client needs an object of a class implementing Watcher interface for
  * processing the events delivered to the client.
  *
