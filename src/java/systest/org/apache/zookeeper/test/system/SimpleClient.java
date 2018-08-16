@@ -40,13 +40,22 @@ public class SimpleClient implements Instance, Watcher, AsyncCallback.DataCallba
     transient String myPath;
     byte data[];
     boolean createdEphemeral;
+
+    /**
+     * 设置配置信息
+     * index hostport
+     * @param params parameters that were passed to the InstanceManager when
+     */
     public void configure(String params) {
         String parts[] = params.split(" ");
         hostPort = parts[1];
         this.index = Integer.parseInt(parts[0]);
         myPath = "/simpleCase/" + index;
     }
-    
+
+    /**
+     * 初始化zk client
+     */
     public void start() {
         try {
             zk = new ZooKeeper(hostPort, 15000, this);
@@ -58,7 +67,10 @@ public class SimpleClient implements Instance, Watcher, AsyncCallback.DataCallba
             e.printStackTrace();
         }
     }
-    
+
+    /**
+     * 关闭zk客户端
+     */
     public void stop() {
         try {
             if (zk != null) {
@@ -68,6 +80,11 @@ public class SimpleClient implements Instance, Watcher, AsyncCallback.DataCallba
             e.printStackTrace();
         }
     }
+
+    /**
+     * 处理watcher事件
+     * @param event
+     */
     public void process(WatchedEvent event) {
         if (event.getPath() != null && event.getPath().equals("/simpleCase")) {
             zk.getData("/simpleCase", true, this, null);
@@ -93,7 +110,8 @@ public class SimpleClient implements Instance, Watcher, AsyncCallback.DataCallba
             }
         }            
     }
-    
+
+    //TODO:不明白谁去调用他？
     public void processResult(int rc, String path, Object ctx, String name) {
         if (rc != 0) {
             zk.create(myPath, data, Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL, this, null);

@@ -70,6 +70,7 @@ import org.apache.zookeeper.client.ZKClientConfig;
 import org.apache.zookeeper.admin.ZooKeeperAdmin;
 
 /**
+ * 命令行客户端
  * The command line client to ZooKeeper.
  *
  */

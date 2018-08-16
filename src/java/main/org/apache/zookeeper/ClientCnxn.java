@@ -92,6 +92,9 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
 /**
+ * 这个类管理为client管理socket i/o。clientCnxn维护可用来连接的服务器的列表。
+ * 根据需要可以透明的切换它连接的服务器。
+ *
  * This class manages the socket i/o for the client. ClientCnxn maintains a list
  * of available servers to connect to and "transparently" switches servers it is
  * connected to as needed.

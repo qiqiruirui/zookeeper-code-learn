@@ -1461,27 +1461,47 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 创建一个给定path的node，可以设置node给定的data和acl属性。
+     *
      * Create a node with the given path. The node data will be the given data,
      * and node acl will be the given acl.
      * <p>
+     *
+     *  flag参数说明创建的node是否为ephemeral。
+     *  当创建node的session过期时，ephemeral node将会被zookeeper自动删除。
      * The flags argument specifies whether the created node will be ephemeral
      * or not.
      * <p>
      * An ephemeral node will be removed by the ZooKeeper automatically when the
      * session associated with the creation of the node expires.
      * <p>
+     *
+     *  flag参数也可以指定为创建sequential node。sequential node的实际path为指定path加上
+     *  后缀i。i是当前node的顺序数，顺序数总是固定长度的10位数字，用0对齐。
+     *  一旦一个node被创建，顺序数会增加1.
+     *
      * The flags argument can also specify to create a sequential node. The
      * actual path name of a sequential node will be the given path plus a
      * suffix "i" where i is the current sequential number of the node. The sequence
      * number is always fixed length of 10 digits, 0 padded. Once
      * such a node is created, the sequential number will be incremented by one.
      * <p>
+     *
+     *  如果相同path的node已经在zookeeper中存在，KeeperException.NodeExists错误的异常将会抛出。
+     *  注意：创建sequential node的调用使用相同的path参数，但是使用的是不同的实际路径，
+     *  所以调用不会抛出"file exists" KeeperException。
+     *
      * If a node with the same actual path already exists in the ZooKeeper, a
      * KeeperException with error code KeeperException.NodeExists will be
      * thrown. Note that since a different actual path is used for each
      * invocation of creating sequential node with the same path argument, the
      * call will never throw "file exists" KeeperException.
      * <p>
+     *
+     *  如果在zookeeper中父node不存在，将会抛出带有KeeperException.NoNode错误码的KeeperException。
+     *  ephemeral node不能有children。如果给定path的parent node的类型是ephemeral，
+     *  将会抛出带有KeeperException.NoChildrenForEphemerals错误码的KeeperException。
+     *
      * If the parent node does not exist in the ZooKeeper, a KeeperException
      * with error code KeeperException.NoNode will be thrown.
      * <p>
@@ -1489,14 +1509,22 @@ public class ZooKeeper implements AutoCloseable {
      * path is ephemeral, a KeeperException with error code
      * KeeperException.NoChildrenForEphemerals will be thrown.
      * <p>
+     * 如果创建操作成功将会触发所有通过exists和getData API调用的留在给定路径上的watches，
+     * 同时也会触发getChildren api调用留在parent node上的watches。
+     *
      * This operation, if successful, will trigger all the watches left on the
      * node of the given path by exists and getData API calls, and the watches
      * left on the parent node by getChildren API calls.
      * <p>
+     *  如果node创建成功，zookeeper server将会触发exists调用留在这个path上的watches，
+     *  并且也会触发getChildren调用留在父node上的watches。
+     *
      * If a node is created successfully, the ZooKeeper server will trigger the
      * watches on the path left by exists calls, and the watches on the parent
      * of the node by getChildren calls.
      * <p>
+     *
+     *  数据数组最大允许的大小是1MB.数组超过这个值将会抛出KeeperExecption。
      * The maximum allowable size of the data array is 1 MB (1,048,576 bytes).
      * Arrays larger than this will cause a KeeperExecption to be thrown.
      *
@@ -1525,6 +1553,7 @@ public class ZooKeeper implements AutoCloseable {
 
         final String serverPath = prependChroot(clientPath);
 
+        //封装请求参数
         RequestHeader h = new RequestHeader();
         h.setType(createMode.isContainer() ? ZooDefs.OpCode.createContainer : ZooDefs.OpCode.create);
         CreateRequest request = new CreateRequest();
@@ -1536,11 +1565,16 @@ public class ZooKeeper implements AutoCloseable {
             throw new KeeperException.InvalidACLException();
         }
         request.setAcl(acl);
+
+        //提交请求
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
+        //创建不成功，封装错误码，抛出异常
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
+
+        //返回实际创建的path
         if (cnxn.chrootPath == null) {
             return response.getPath();
         } else {
@@ -2596,16 +2630,27 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 返回指定路径znode的children 列表
      * Return the list of the children of the node of the given path.
      * <p>
+     *
+     *  如果watch设置true，调用成功（无异常抛出），watch将会在给定的路径上设置watch。
+     *  当删除指定路径的node或create/delete该node下的一个child，这个watch将会被触发。
+     *
      * If the watch is true and the call is successful (no exception is thrown),
      * a watch will be left on the node with the given path. The watch willbe
      * triggered by a successful operation that deletes the node of the given
      * path or creates/delete a child under the node.
      * <p>
+     *
+     *  返回的children列表是无序的
+     *
      * The list of children returned is not sorted and no guarantee is provided
      * as to its natural or lexical order.
      * <p>
+     *
+     *  如果给定的路径没有node，那么将会抛出带有KeeperException.NoNode错误码的KeeperException
+     *
      * A KeeperException with error code KeeperException.NoNode will be thrown
      * if no node with the given path exists.
      *

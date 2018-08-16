@@ -45,7 +45,7 @@ public class ZooKeeperTest extends ClientBase {
     private static final String LINE_SEPARATOR = System.getProperty("line.separator", "\n");
 
     /**
-     * 测试ZooKeeper和ZooKeeperMain
+     * 测试ZooKeeper和ZooKeeperMain同步删除操作
      * @throws IOException
      * @throws InterruptedException
      * @throws CliException
@@ -81,6 +81,7 @@ public class ZooKeeperTest extends ClientBase {
         Assert.assertTrue(children.contains("b"));
         Assert.assertTrue(children.contains("c"));
 
+        //命令行客户端
         ZooKeeperMain zkMain = new ZooKeeperMain(zk);
         // 'rmr' is deprecated, so the test here is just for backwards
         // compatibility.
@@ -96,6 +97,12 @@ public class ZooKeeperTest extends ClientBase {
         Assert.assertNull(zk.exists("/a", null));
     }
 
+    /**
+     * 测试zk和zkCli异步删除操作
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws KeeperException
+     */
     @Test
     public void testDeleteRecursiveAsync() throws IOException,
             InterruptedException, KeeperException {
