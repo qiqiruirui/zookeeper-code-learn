@@ -304,11 +304,11 @@ xmlns:cs="antlib:com.puppycrawl.tools.checkstyle.ant">
       <!-- the javacc task expects a "javacc.jar" file... -->
       <ivy:artifactproperty name="[artifact].revision" value="[revision]" />
       <move file="${ivy.javacc.lib}/javacc-${javacc.revision}.jar" tofile="${ivy.javacc.lib}/javacc.jar" failonerror="false"/>
+
       <javacc
           target="${java.src.dir}${jute_javacc.packagedir}/rcc.jj"
           outputdirectory="${jute_javacc.dir}${jute_javacc.packagedir}/"
-          javacchome="${ivy.javacc.lib}"
-          />
+          javacchome="${ivy.javacc.lib}"/>
     </target>
      
     <target name="jute" depends="generate_jute_parser">
