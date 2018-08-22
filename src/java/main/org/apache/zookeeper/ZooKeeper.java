@@ -471,13 +471,13 @@ public class ZooKeeper implements AutoCloseable {
         }
 
         /**
-         *
-         * @param pathVsWatcher
-         * @param watcher
-         * @param path
-         * @param local
+         * 删除watches
+         * @param pathVsWatcher         path和watches映射
+         * @param watcher               待删除的watcher
+         * @param path                  watcher所在路径
+         * @param local                 ？
          * @param rc                    KeeperException.Code枚举类型
-         * @param removedWatchers
+         * @param removedWatchers       删除的watcher列表
          * @return
          * @throws KeeperException
          */
@@ -657,7 +657,7 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
-     *处理exist类型的node
+     * 处理exist类型的node
      * 当NONODE 操作返回码，添加一个watcher到exists watch set
      *
      * Handle the special case of exists watches - they add a watcher
@@ -731,10 +731,15 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 创建zookeeper客户端对象，应用需要传递connection串，它由逗号分隔的host：port对组成，
+     * 每一个代表一个zookeeper server。
      * To create a ZooKeeper client object, the application needs to pass a
      * connection string containing a comma separated list of host:port pairs,
      * each corresponding to a ZooKeeper server.
      * <p>
+     *  session建立是异步的。这个构造器将会初始化到server的连接，并通常在session完全
+     *  建立之前立即返回。watcher参数指定了状态的任何变化，watcher将会被通知。这个通知
+     *  可能在任何时间点到来，在构造器调用返回之前或之后。
      * Session establishment is asynchronous. This constructor will initiate
      * connection to the server and return immediately - potentially (usually)
      * before the session is fully established. The watcher argument specifies
@@ -742,6 +747,10 @@ public class ZooKeeper implements AutoCloseable {
      * notification can come at any point before or after the constructor call
      * has returned.
      * <p>
+     * 实例化zookeeper客户端的对象时，会从connectString中任意取出一个尝试
+     * 建立连接。如果连接失败，其他的server将会被尝试（顺序是不定的，
+     * 会随机shuffle connectString离别），直到连接建立。客户端会继续尝试，直到
+     * session显示的closed。
      * The instantiated ZooKeeper client object will pick an arbitrary server
      * from the connectString and attempt to connect to it. If establishment of
      * the connection fails, another server in the connect string will be tried
@@ -749,11 +758,20 @@ public class ZooKeeper implements AutoCloseable {
      * connection is established. The client will continue attempts until the
      * session is explicitly closed.
      * <p>
+     *  3.2.0新加了chroot后缀可选项， 它可以附加在connection string后面。
+     *  这种情况，运行客户端的命令，解析的path都是相对于chroot后的root目录。
+     *
      * Added in 3.2.0: An optional "chroot" suffix may also be appended to the
      * connection string. This will run the client commands while interpreting
      * all paths relative to this root (similar to the unix chroot command).
      *
      * @param connectString
+     * chroot：https://blog.csdn.net/shudaqi2010/article/details/53438040
+     * chroot改变系统的根目录，实现特定用户与原系统文件目录的隔离。
+     * 逗号分割的host:port对，每一个表示一个zk服务器。比如：127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002。
+     * 如果使用可选的chroot后缀，例如127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002/app/a。
+     * 那么client将会将/app/a作为root目录，其他的path也是相对于这个root目录的。
+     * 比如getting/setting/etc..."/foo/bar"的操作，从服务器的视角看操作将会运行在"/app/a/foo/bar"。
      *            comma separated host:port pairs, each corresponding to a zk
      *            server. e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002" If
      *            the optional chroot suffix is used the example would look
@@ -768,6 +786,7 @@ public class ZooKeeper implements AutoCloseable {
      *            a watcher object which will be notified of state changes, may
      *            also be notified for node events
      *
+     *  一个watcher对象将会在状态改变或node events被通知
      * @throws IOException
      *             in cases of network failure
      * @throws IllegalArgumentException
@@ -945,9 +964,13 @@ public class ZooKeeper implements AutoCloseable {
      *            majority in the background.
      * @param aHostProvider
      *            use this as HostProvider to enable custom behaviour.
+     *            使用HostProvider是为了自定义行为
+     *
      * @param clientConfig
      *            (added in 3.5.2) passing this conf object gives each client the flexibility of
      *            configuring properties differently compared to other instances
+     *             版本3.5.2添加的参数：传递这个conf对象，让每个client灵活的配置和其他对象不同的属性。
+     *
      * @throws IOException
      *             in cases of network failure
      * @throws IllegalArgumentException
@@ -969,9 +992,12 @@ public class ZooKeeper implements AutoCloseable {
                 connectString);
         hostProvider = aHostProvider;
 
+        //创建client到zookeeper server的连接
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
                 hostProvider, sessionTimeout, this, watchManager,
                 getClientCnxnSocket(), canBeReadOnly);
+
+        //启动sendThread和eventThread线程
         cnxn.start();
     }
 
@@ -1013,6 +1039,8 @@ public class ZooKeeper implements AutoCloseable {
      * @param watcher
      *            a watcher object which will be notified of state changes, may
      *            also be notified for node events
+     *
+     *            watcher对象将会在状态变化时被通知，也可能因为events被通知。
      * @param canBeReadOnly
      *            (added in 3.4) whether the created client is allowed to go to
      *            read-only mode in case of partitioning. Read-only mode
@@ -1021,6 +1049,11 @@ public class ZooKeeper implements AutoCloseable {
      *            connects to one in read-only mode, i.e. read requests are
      *            allowed while write requests are not. It continues seeking for
      *            majority in the background.
+     *
+     *  版本3.4添加的功能：当存在分区（网络分区，脑裂）时，创建的client是否允许进入read-only模式。
+     *  read-only模式基本意味着：当client不能找到任何的？？majority server（大多数的服务器，还是leader服务器），
+     *  但是有分区的server可达。它将以read-only模式连接其中的一个服务器。也就是读请求可以但是write 请求不可用。
+     *  它会继续在后台搜索主节点（majority）。
      *
      * @throws IOException
      *             in cases of network failure
@@ -1583,6 +1616,7 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 与上面的方法比较，多了一个stat参数-输出stat对象
      * Create a node with the given path and returns the Stat of that node. The
      * node data will be the given data and node acl will be the given acl.
      * <p>
@@ -1646,6 +1680,9 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 当mode是PERSISTENT_WITH_TTL或PERSISTENT_SEQUENTIAL_WITH_TTL时，允许指定TTL参数。
+     * 在给定的TTL时间内，若果znode没有被修改过，在没有children情况下znode将被删除。
+     * TTL的时间单位是毫秒，EphemeralType TTL取值必须大于0并小于等于EphemeralType.maxValue()。
      * same as {@link #create(String, byte[], List, CreateMode, Stat)} but
      * allows for specifying a TTL when mode is {@link CreateMode#PERSISTENT_WITH_TTL}
      * or {@link CreateMode#PERSISTENT_SEQUENTIAL_WITH_TTL}. If the znode has not been modified
@@ -1660,6 +1697,7 @@ public class ZooKeeper implements AutoCloseable {
         PathUtils.validatePath(clientPath, createMode.isSequential());
         EphemeralType.validateTTL(createMode, ttl);
 
+        //封装请求参数
         final String serverPath = prependChroot(clientPath);
 
         RequestHeader h = new RequestHeader();
@@ -1669,11 +1707,15 @@ public class ZooKeeper implements AutoCloseable {
             throw new KeeperException.InvalidACLException();
         }
         Record record = makeCreateRecord(createMode, serverPath, data, acl, ttl);
+
+        //发送创建请求
         ReplyHeader r = cnxn.submitRequest(h, record, response, null);
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
+
+        //与上述create方法的不同部分
         if (stat != null) {
             DataTree.copyStat(response.getStat(), stat);
         }
@@ -1752,6 +1794,7 @@ public class ZooKeeper implements AutoCloseable {
     }
 
     /**
+     * 同步版本：带有ttl的创建node
      * The asynchronous version of create with ttl.
      *
      * @see #create(String, byte[], List, CreateMode, Stat, long)
@@ -1763,6 +1806,7 @@ public class ZooKeeper implements AutoCloseable {
         PathUtils.validatePath(clientPath, createMode.isSequential());
         EphemeralType.validateTTL(createMode, ttl);
 
+        //封装请求参数
         final String serverPath = prependChroot(clientPath);
 
         RequestHeader h = new RequestHeader();
@@ -1770,11 +1814,25 @@ public class ZooKeeper implements AutoCloseable {
         ReplyHeader r = new ReplyHeader();
         Create2Response response = new Create2Response();
         Record record = makeCreateRecord(createMode, serverPath, data, acl, ttl);
+
+        //发送请求
         cnxn.queuePacket(h, r, record, response, cb, clientPath,
                 serverPath, ctx, null);
     }
 
     /**
+     * 删除给定path的node。如果node存在并且给定version和node的version匹配，delete调用成功。
+     * 如果version是-1，它将会匹配node的任意版本。
+     *
+     * 如果nodes不存在,带有KeeperException.NoNode错误码的KeeperException的异常被抛出。
+     * 如果给定的version不能匹配node的version，带有KeeperException.BadVersion错误码的KeeperException
+     * 的异常将被抛出。
+     *
+     * 如果node有children，带有KeeperException.NotEmpty错误码的KeeperException的异常被抛出。
+     *
+     * 如果delete操作成功，它将会触发node上通过exists api在指定path留下的所有的watches，
+     * 通过getChildren api调用留在parent node的watches也会触发。
+     *
      * Delete the node with the given path. The call will succeed if such a node
      * exists, and the given version matches the node's version (if the given
      * version is -1, it matches any node's versions).
@@ -1809,6 +1867,7 @@ public class ZooKeeper implements AutoCloseable {
 
         final String serverPath;
 
+        // root不能删除
         // maintain semantics even in chroot case
         // specifically - root cannot be deleted
         // I think this makes sense even in chroot case.
@@ -1820,6 +1879,7 @@ public class ZooKeeper implements AutoCloseable {
             serverPath = prependChroot(clientPath);
         }
 
+        //封装delete操作参数
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.delete);
         DeleteRequest request = new DeleteRequest();

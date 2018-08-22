@@ -25,11 +25,18 @@ import org.apache.yetus.audience.InterfaceAudience;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
 
+/**
+ * zookeeper的常量和接口定义
+ */
 @InterfaceAudience.Public
 public class ZooDefs {
-   
+
+    //config node
    final public static String CONFIG_NODE = "/zookeeper/config";
 
+    /**
+     * zookeeper 支持的所有操作-对应的operation code
+     */
    @InterfaceAudience.Public
     public interface OpCode {
         public final int notification = 0;
@@ -87,47 +94,55 @@ public class ZooDefs {
         public final int error = -1;
     }
 
+    /**
+     * 操作权限接口
+     */
     @InterfaceAudience.Public
     public interface Perms {
-        int READ = 1 << 0;
+        int READ = 1 << 0;      //0
 
-        int WRITE = 1 << 1;
+        int WRITE = 1 << 1;      //2
 
-        int CREATE = 1 << 2;
+        int CREATE = 1 << 2;      //4
 
-        int DELETE = 1 << 3;
+        int DELETE = 1 << 3;      //8
 
-        int ADMIN = 1 << 4;
+        int ADMIN = 1 << 4;      //16 - 10000
 
-        int ALL = READ | WRITE | CREATE | DELETE | ADMIN;
+        int ALL = READ | WRITE | CREATE | DELETE | ADMIN;       //31 - 11111
     }
 
     @InterfaceAudience.Public
     public interface Ids {
         /**
+         * 代表任意人
          * This Id represents anyone.
          */
         public final Id ANYONE_ID_UNSAFE = new Id("world", "anyone");
 
         /**
+         * 这个id只是用来设置ACLs。它将会被验证过的客户端的ID替换。
          * This Id is only usable to set ACLs. It will get substituted with the
          * Id's the client authenticated with.
          */
         public final Id AUTH_IDS = new Id("auth", "");
 
         /**
+         * 完全开放的ACL
          * This is a completely open ACL .
          */
         public final ArrayList<ACL> OPEN_ACL_UNSAFE = new ArrayList<ACL>(
                 Collections.singletonList(new ACL(Perms.ALL, ANYONE_ID_UNSAFE)));
 
         /**
+         * 指定authIds拥有所有权限
          * This ACL gives the creators authentication id's all permissions.
          */
         public final ArrayList<ACL> CREATOR_ALL_ACL = new ArrayList<ACL>(
                 Collections.singletonList(new ACL(Perms.ALL, AUTH_IDS)));
 
         /**
+         * 所有人具有读权限
          * This ACL gives the world the ability to read.
          */
         public final ArrayList<ACL> READ_ACL_UNSAFE = new ArrayList<ACL>(
@@ -135,6 +150,7 @@ public class ZooDefs {
                         .singletonList(new ACL(Perms.READ, ANYONE_ID_UNSAFE)));
     }
 
+    //支持的操作列表
     final public static String[] opNames = { "notification", "create",
             "delete", "exists", "getData", "setData", "getACL", "setACL",
             "getChildren", "getChildren2", "getMaxChildren", "setMaxChildren", "ping", "reconfig", "getConfig" };

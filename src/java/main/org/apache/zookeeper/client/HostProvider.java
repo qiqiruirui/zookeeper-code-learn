@@ -25,6 +25,8 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 
 /**
+ * zookeeper客户端应该连接的host集合。
+ *
  * A set of hosts a ZooKeeper client should connect to.
  * 
  * Classes implementing this interface must guarantee the following:
